@@ -69,6 +69,8 @@ tf.app.flags.DEFINE_boolean("self_test", False,
                             "Run a self-test if this is set to True.")
 tf.app.flags.DEFINE_boolean("use_fp16", False,
                             "Train using fp16 instead of fp32.")
+tf.app.flags.DEFINE_string("domain","movies",
+                            "Domain model to train on.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -118,26 +120,28 @@ def read_data(source_path, target_path, max_size=None):
 def create_model(session, forward_only):
   """Create translation model and initialize or load parameters in session."""
   dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-  model = seq2seq_model.Seq2SeqModel(
-      FLAGS.cont_vocab_size,
-      FLAGS.resp_vocab_size,
-      _buckets,
-      FLAGS.size,
-      FLAGS.num_layers,
-      FLAGS.max_gradient_norm,
-      FLAGS.batch_size,
-      FLAGS.learning_rate,
-      FLAGS.learning_rate_decay_factor,
-      forward_only=forward_only,
-      dtype=dtype)
-  ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-  if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-    print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-    model.saver.restore(session, ckpt.model_checkpoint_path)
-  else:
-    print("Created model with fresh parameters.")
-    session.run(tf.global_variables_initializer())
-  return mode
+  with tf.variable_scope(FLAGS.domain):
+	model = seq2seq_model.Seq2SeqModel(
+      		FLAGS.cont_vocab_size,
+      		FLAGS.resp_vocab_size,
+      		_buckets,
+      		FLAGS.size,
+      		FLAGS.num_layers,
+      		FLAGS.max_gradient_norm,
+      		FLAGS.batch_size,
+      		FLAGS.learning_rate,
+      		FLAGS.learning_rate_decay_factor,
+      		forward_only=forward_only,
+      		dtype=dtype)
+  	saver = tf.train.Saver(tf.all_variables())
+	ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
+  	if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+    		print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
+    		saver.restore(session, ckpt.model_checkpoint_path)
+  	else:
+    		print("Created model with fresh parameters.")
+    		session.run(tf.global_variables_initializer())
+  return model, saver
 
 
 def train():
@@ -150,7 +154,7 @@ def train():
   with tf.Session() as sess:
     # Create model.
     print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
-    model = create_model(sess, False)
+    model, saver = create_model(sess, False)
 
     # Read data into buckets and compute their sizes.
     print ("Reading development and training data (limit: %d)."
@@ -200,7 +204,7 @@ def train():
         previous_losses.append(loss)
         # Save checkpoint and zero timer and loss.
         checkpoint_path = os.path.join(FLAGS.train_dir, "translate.ckpt")
-        model.saver.save(sess, checkpoint_path, global_step=model.global_step)
+        saver.save(sess, checkpoint_path, global_step=model.global_step)
         step_time, loss = 0.0, 0.0
         # Run evals on development set and print their perplexity.
         for bucket_id in xrange(len(_buckets)):
@@ -220,7 +224,7 @@ def train():
 def decode():
   with tf.Session() as sess:
     # Create model and load parameters.
-    model = create_model(sess, True)
+    model, _ = create_model(sess, True)
     model.batch_size = 1  # We decode one sentence at a time.
 
     # Load vocabularies.

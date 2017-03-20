@@ -1,32 +1,3 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
-"""Binary for training translation models and decoding from them.
-
-Running this program without --decode will download the WMT corpus into
-the directory specified as --data_dir and tokenize it in a very basic way,
-and then start training a model saving checkpoints to --train_dir.
-
-Running with --decode starts an interactive loop so you can see how
-the current checkpoint translates English sentences into French.
-
-See the following papers for more information on neural translation models.
- * http://arxiv.org/abs/1409.3215
- * http://arxiv.org/abs/1409.0473
- * http://arxiv.org/abs/1412.2007
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -37,6 +8,15 @@ import random
 import sys
 import time
 import logging
+
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import SGDClassifier
+import cPickle
+
+model = None
+vectorizer = None
 
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -69,14 +49,13 @@ tf.app.flags.DEFINE_boolean("self_test", False,
                             "Run a self-test if this is set to True.")
 tf.app.flags.DEFINE_boolean("use_fp16", False,
                             "Train using fp16 instead of fp32.")
-
 FLAGS = tf.app.flags.FLAGS
 
 # We use a number of buckets and pad to the closest one for efficiency.
 # See seq2seq_model.Seq2SeqModel for details of how they work.
 _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
-def create_model(session, forward_only, path, vocab_size):
+def create_model(session, forward_only, path, vocab_size,domain):
   """Create translation model and initialize or load parameters in session."""
   dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
   model = seq2seq_model.Seq2SeqModel(
@@ -90,27 +69,26 @@ def create_model(session, forward_only, path, vocab_size):
       FLAGS.learning_rate,
       FLAGS.learning_rate_decay_factor,
       forward_only=forward_only,
-      dtype=dtype)
-  ckpt = tf.train.get_checkpoint_state(path)
+      dtype=dtype) 
+  all_vars = tf.all_variables()
+  model_vars = [k for k in all_vars if k.name.startswith(domain)]
+  ckpt = tf.train.get_checkpoint_state(path) 
   if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-    print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-    model.saver.restore(session, ckpt.model_checkpoint_path)
+    print("Reading model parameters from %s" % ckpt.model_checkpoint_path) 
+    tf.train.Saver(model_vars).restore(session, ckpt.model_checkpoint_path)
   else:
     print("Created model with fresh parameters.")
     session.run(tf.global_variables_initializer())
   return model
 
-def load_model(sess):
-    # Create model and load parameters.
-    model_movies = create_model(sess, True, 'movies_checkpoint',158470)
-    model_movies.batch_size = 1  # We decode one sentence at a time.
+def load_model(sess,checkpoint,vocab_size,domain):
+    # Create model and load parameters. 
+    model = create_model(sess, True,checkpoint,vocab_size,domain)
+    model.batch_size = 1  # We decode one sentence at a time. 
 
-    #model_gaming = create_model(sess,True, 'gaming_checkpoint',91935)
-    #model_gaming.batch_size = 1
+    return model
 
-    return model_movies
-
-def decode(session,model,cont_vocab,resp_vocab,sentence):
+def decode(sess,model,cont_vocab,resp_vocab,sentence):
     # Decode from standard input.
     while sentence:
       # Get token-ids for the input sentence.
@@ -139,10 +117,28 @@ def decode(session,model,cont_vocab,resp_vocab,sentence):
       response = " ".join([tf.compat.as_str(resp_vocab[output]) for output in outputs])
       return response 
 
+def predict(sent):
+ global model
+ global vectorizer
+ if(model == None):
+  with open('domain_model.pkl','rb') as fid:
+   model = cPickle.load(fid)
+ if(vectorizer == None):
+  with open('domain_vectorizer.pkl','rb') as fid:
+   vectorizer = cPickle.load(fid)
+ sent = [sent]
+ X_test = vectorizer.transform(sent)
+ return model.predict(X_test)[0]
+
 def main(_):
   with tf.Session() as sess:
-  	movies_model = load_model(sess)
-	#gaming_model = load_model(sess)
+  	with tf.variable_scope("movies") as movies_scope:
+		movies_model = load_model(sess,'movies_checkpoint',158470,"movies")	
+	with tf.variable_scope("gaming") as gaming_scope:
+		gaming_model = load_model(sess,'gaming_checkpoint',91935,"gaming")
+	with tf.variable_scope("ood") as ood_scope:
+		ood_model = load_model(sess,'ood_checkpoint',40000,"ood")
+	
 	# Load vocabularies.
 	movie_cont_vocab_path = os.path.join(FLAGS.data_dir,
 				 "movies/vocab158470.cont")
@@ -152,24 +148,41 @@ def main(_):
 	movie_cont_vocab, _ = data_utils.initialize_vocabulary(movie_cont_vocab_path)
 	_, movie_resp_vocab = data_utils.initialize_vocabulary(movie_resp_vocab_path)
 
-	#gaming_cont_vocab_path = os.path.join(FLAGS.data_dir,
-	#			 "gaming/vocab91935.cont")
-	#gaming_resp_vocab_path = os.path.join(FLAGS.data_dir,
-	#			 "gaming/vocab91935.resp")
+	gaming_cont_vocab_path = os.path.join(FLAGS.data_dir,
+				 "gaming/vocab91935.cont")
+	gaming_resp_vocab_path = os.path.join(FLAGS.data_dir,
+				 "gaming/vocab91935.resp")
 
-	#gaming_cont_vocab, _ = data_utils.initialize_vocabulary(gaming_cont_vocab_path)
-	#_, gaming_resp_vocab = data_utils.initialize_vocabulary(gaming_resp_vocab_path)
+	gaming_cont_vocab, _ = data_utils.initialize_vocabulary(gaming_cont_vocab_path)
+	_, gaming_resp_vocab = data_utils.initialize_vocabulary(gaming_resp_vocab_path)
+
+	ood_cont_vocab_path = os.path.join(FLAGS.data_dir,
+                                 "ood/vocab40000.cont")
+        ood_resp_vocab_path = os.path.join(FLAGS.data_dir,
+                                 "ood/vocab40000.resp")
+
+        ood_cont_vocab, _ = data_utils.initialize_vocabulary(ood_cont_vocab_path)
+        _, ood_resp_vocab = data_utils.initialize_vocabulary(ood_resp_vocab_path)
 
 	sys.stdout.write("> ")
     	sys.stdout.flush()
     	sentence = sys.stdin.readline()
     	while sentence:
-		pred = 0
+		pred_str = predict(sentence)
+		pred = int(pred_str.strip())
 		response = ''
-        	if pred:
-                	response = decode(sess,movies_model,movie_cont_vocab,movie_resp_vocab,sentence)
-        	#else:
-                	#response = decode(sess,gaming_model,gaming_cont_vocab,gaming_resp_vocab,sentence)
+        	if pred==0:
+                        print('Movie Predicted!')
+			with tf.variable_scope("movies"):
+                		response = decode(sess,movies_model,movie_cont_vocab,movie_resp_vocab,sentence)
+        	elif pred==1:
+                        print('Gaming Predicted!')
+			with tf.variable_scope("gaming"):
+                		response = decode(sess,gaming_model,gaming_cont_vocab,gaming_resp_vocab,sentence)
+		elif pred==2:
+			print('Out of domain Predicted!')
+			with tf.variable_scope("ood"):
+				response = decode(sess,ood_model,ood_cont_vocab,ood_resp_vocab,sentence)
 		print(response)
         	sys.stdout.write("> ")
 		sys.stdout.flush()

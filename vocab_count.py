@@ -1,6 +1,8 @@
 import nltk
 import re
 
+nltk.download()
+
 def remove_punctuation(line):
         line = re.sub('[?"]','',line)
         return line
@@ -26,10 +28,10 @@ def count(filename):
 	return fdist
 
 if __name__ == '__main__':
-	fdist = count('data/full_data')
+	fdist = count('data/ood/full_set')
 	count = 0
 	for word,frequency in fdist.most_common():
-		if (frequency > 5):
+		if (frequency > 1):
 			count+=1
 		else:
 			break

@@ -4,6 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
 import cPickle
 import sys
+
 def readTrain():
  f = open('data/train_set', 'r')
  train_X = []
@@ -20,11 +21,13 @@ vectorizer = None
 
 ##TRAIN
 #This is one time, only during training
-#train_X, train_Y = readTrain()
-#vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, stop_words='english')
-#X_train = vectorizer.fit_transform(train_X)
-#model = SGDClassifier(alpha=.0001, n_iter=50, penalty="l2")
-#model.fit(X_train,train_Y)
+train_X, train_Y = readTrain()
+vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.5, stop_words='english')
+X_train = vectorizer.fit_transform(train_X)
+cPickle.dump(vectorizer, open('domain_vectorizer.pkl','wb'))
+model = SGDClassifier(alpha=.0001, n_iter=50, penalty="l2")
+model.fit(X_train,train_Y)
+cPickle.dump(model, open('domain_model.pkl','wb'))
 #Model pickled after train
 
 #Testing
@@ -42,9 +45,9 @@ def predict(sent):
  return model.predict(X_test)[0]
 
 
-if __name__ == "__main__":
- sent = sys.argv[1]
- print(predict(sent)) 
+#if __name__ == "__main__":
+ #sent = sys.argv[1]
+ #print(predict(sent)) 
 
 
 

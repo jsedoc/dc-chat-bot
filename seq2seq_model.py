@@ -25,7 +25,7 @@ import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from tensorflow.models.rnn.translate import data_utils
+import data_utils
 
 
 class Seq2SeqModel(object):
@@ -84,12 +84,12 @@ class Seq2SeqModel(object):
     self.target_vocab_size = target_vocab_size
     self.buckets = buckets
     self.batch_size = batch_size
-    self.learning_rate = tf.Variable(
-        float(learning_rate), trainable=False, dtype=dtype)
+    self.learning_rate = tf.get_variable('learning_rate', shape=[], initializer=tf.constant_initializer(
+        float(learning_rate)), trainable=False, dtype=dtype)
     self.learning_rate_decay_op = self.learning_rate.assign(
         self.learning_rate * learning_rate_decay_factor)
-    self.global_step = tf.Variable(0, trainable=False)
-
+    self.global_step = tf.get_variable('global_step', shape=[], initializer=tf.constant_initializer(0), trainable=False)
+ 
     # If we use sampled softmax, we need an output projection.
     output_projection = None
     softmax_loss_function = None
@@ -123,7 +123,7 @@ class Seq2SeqModel(object):
 
     # The seq2seq function: we use embedding for the input and attention.
     def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
-      return tf.nn.seq2seq.embedding_attention_seq2seq(
+      return tf.contrib.legacy_seq2seq.embedding_attention_seq2seq(
           encoder_inputs,
           decoder_inputs,
           cell,
@@ -153,7 +153,7 @@ class Seq2SeqModel(object):
 
     # Training outputs and losses.
     if forward_only:
-      self.outputs, self.losses = tf.nn.seq2seq.model_with_buckets(
+      self.outputs, self.losses = tf.contrib.legacy_seq2seq.model_with_buckets(
           self.encoder_inputs, self.decoder_inputs, targets,
           self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
           softmax_loss_function=softmax_loss_function)
@@ -183,9 +183,7 @@ class Seq2SeqModel(object):
                                                          max_gradient_norm)
         self.gradient_norms.append(norm)
         self.updates.append(opt.apply_gradients(
-            zip(clipped_gradients, params), global_step=self.global_step))
-
-    self.saver = tf.train.Saver(tf.global_variables())
+            zip(clipped_gradients, params), global_step=self.global_step)) 
 
   def step(self, session, encoder_inputs, decoder_inputs, target_weights,
            bucket_id, forward_only):

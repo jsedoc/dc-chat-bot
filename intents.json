@@ -1,0 +1,13 @@
+{
+  "intents": [
+    {
+      "slots": [
+        {
+          "name": "text",
+          "type": "AMAZON.LITERAL"
+        }
+      ],
+      "intent": "BotIntent"
+    }
+  ]
+}

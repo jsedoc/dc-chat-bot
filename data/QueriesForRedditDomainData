@@ -1,0 +1,306 @@
+To get the domain posts (example of movies):
+SELECT * from 
+  (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2017_01]
+  WHERE
+    domain='self.movies'),
+  (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_12]
+  WHERE
+    domain='self.movies'),
+ (
+ SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_11]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_10]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_09]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_08]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_07]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_06]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_05]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_04]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_03]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_02]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2016_01]
+  WHERE
+    domain='self.movies'),
+    (
+  SELECT
+    domain,
+    title,
+    selftext AS post,
+    name
+  FROM
+    [fh-bigquery:reddit_posts.2015_12]
+  WHERE
+    domain='self.movies');
+
+ To Get Union of all comments:
+ SELECT * from 
+  (
+  SELECT
+    parent_id, 
+    body AS comment,
+  FROM
+    [fh-bigquery:reddit_comments.2017_01]
+  WHERE
+    body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+  (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_12]
+  WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+   (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_11]
+  WHERE
+       body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+  (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_10]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_09]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),    
+  (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_08]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_07]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_06]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_05]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_04]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_03]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+   (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_02]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2016_01]
+  WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!=''),
+    (
+  SELECT
+    parent_id, 
+    body AS comment
+  FROM
+    [fh-bigquery:reddit_comments.2015_12]
+   WHERE
+        body!='[removed]' and
+    body!='[deleted]' and
+    body!='');
+
+    Joined to get the comments per post:
+    SELECT
+  posts.domain as domain,
+  posts.name as posts_name,
+  posts.response as query,
+  comments.parent_id as parent_id,
+  comments.comment as response,
+  comments.name as name
+FROM
+  [PostsComments.2015GamingThirdLevel] as posts
+JOIN
+  [PostsComments.2015Comments] as comments
+ON
+  posts.name=comments.parent_id
+WHERE
+  comments.comment!='[removed]' AND
+  comments.comment!='[deleted]' AND
+  comments.comment!='';
+  
+  
